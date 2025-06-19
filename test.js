@@ -3,3 +3,5 @@ console.log(
 );
 
 console.log("everything working fine, test.js is working fine");
+
+console.log("this is a test file, of ci/cd pipeline live sync which is working fine");
