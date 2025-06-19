@@ -63,7 +63,7 @@
 
 #-------------
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
-run = "chmod +x auto-commit.sh && ./auto-commit.sh"
+run = "node auto-commit.js"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -88,19 +88,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "chmod +x auto-commit.sh && ./auto-commit.sh"
-
-[[workflows.workflow]]
-name = "Manual Commit"
-author = 39972109
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = """
-git config user.name "dev-itredstone"
-git config user.email "dev.itredstone@gmail.com"
-git add .
-git commit -m "🌀 Manual commit from Replit on $(date)" || echo "No changes to commit"
-git push origin main || echo "❌ Push failed (auth or network issue)"
-"""
+args = "node auto-commit.js"
