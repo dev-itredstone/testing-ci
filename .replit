@@ -61,41 +61,23 @@
 # args = "npm run dev"
 
 
-
 #-------------
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 run = """
-echo "🚀 Starting PayrollPro with auto-commit..."
+echo "🚀 Starting PayrollPro with periodic auto-commit..."
 
-# Start background file watcher
+# Start periodic auto-commit in background
 (
-  echo "🔍 Starting file watcher..."
   while true; do
-    # Wait for file changes (excluding git, node_modules, dist)
-    inotifywait -r -e modify,create,delete,move . \
-      --exclude='(\\.git|node_modules|dist|\\.replit)' 2>/dev/null || sleep 1
-
-    echo "📁 File change detected, waiting 3 seconds for more changes..."
-    sleep 3
-
-    # Configure git
+    sleep 30  # Check every 30 seconds
     git config user.name "dev-itredstone"
     git config user.email "dev.itredstone@gmail.com"
 
-    # Check if there are actually changes to commit
     if ! git diff --quiet || ! git diff --cached --quiet; then
-      echo "💾 Committing changes..."
+      echo "💾 Auto-committing changes..."
       git add .
-      if git commit -m "🌀 Auto-commit from Replit on $(date '+%Y-%m-%d %H:%M:%S')"; then
-        echo "✅ Changes committed"
-        if git push origin main 2>/dev/null; then
-          echo "🚀 Changes pushed to remote"
-        else
-          echo "❌ Push failed (check auth/network)"
-        fi
-      fi
-    else
-      echo "ℹ️ No actual changes to commit"
+      git commit -m "🌀 Auto-commit from Replit on $(date '+%Y-%m-%d %H:%M:%S')" 2>/dev/null
+      git push origin main 2>/dev/null && echo "🚀 Pushed to remote" || echo "❌ Push failed"
     fi
   done
 ) &
@@ -120,32 +102,9 @@ externalPort = 80
 [workflows]
 runButton = "Run PayrollPro"
 
+# Keep your existing workflows...
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Run PayrollPro"
+name = "Manual Git Commit"
 author = 39972109
 mode = "sequential"
 
@@ -155,11 +114,6 @@ args = """
 git config user.name "dev-itredstone"
 git config user.email "dev.itredstone@gmail.com"
 git add .
-git commit -m "🌀 Manual commit from Replit on $(date)" || echo "No changes to commit"
-git push origin main || echo "❌ Push failed (auth or network issue)"
+git commit -m "🌀 Manual commit from Replit" || echo "No changes to commit"
+git push origin main || echo "❌ Push failed"
 """
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
