@@ -46,18 +46,16 @@ name = "Run PayrollPro"
 author = 39972109
 mode = "sequential"
 
-# 💡 Step 1: Commit and Push to GitHub
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = '''
-git config user.name "dev-itredstone"
-git config user.email "dev.itredstone@gmail.com"
+args = """
+git config user.name \"dev-itredstone\"
+git config user.email \"dev.itredstone@gmail.com\"
 git add .
-git commit -m "🌀 Auto-commit from Replit on $(date)" || echo "No changes to commit"
-git push origin main || echo "❌ Push failed (auth or network issue)"
-'''
+git commit -m \"🌀 Auto-commit from Replit on $(date)\" || echo \"No changes to commit\"
+git push origin main || echo \"❌ Push failed (auth or network issue)\"
+"""
 
-# 💡 Step 2: Start Dev Server
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
