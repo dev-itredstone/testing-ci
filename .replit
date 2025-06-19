@@ -1,5 +1,108 @@
+# modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
+# run = "npm run dev"
+# hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+# [nix]
+# channel = "stable-24_05"
+
+# [deployment]
+# deploymentTarget = "autoscale"
+# build = ["npm", "run", "build"]
+# run = ["sh", "-c", "npm run start"]
+
+# [[ports]]
+# localPort = 5000
+# externalPort = 80
+
+# [workflows]
+# runButton = "Run PayrollPro"
+
+# [[workflows.workflow]]
+# name = "Project"
+# mode = "parallel"
+# author = "agent"
+
+# [[workflows.workflow.tasks]]
+# task = "workflow.run"
+# args = "Start application"
+
+# [[workflows.workflow]]
+# name = "Start application"
+# author = "agent"
+
+# [workflows.workflow.metadata]
+# agentRequireRestartOnSave = false
+
+# [[workflows.workflow.tasks]]
+# task = "packager.installForAll"
+
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "npm run dev"
+# waitForPort = 5000
+
+# [[workflows.workflow]]
+# name = "Run PayrollPro"
+# author = 39972109
+# mode = "sequential"
+
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = """
+# git config user.name \"dev-itredstone\"
+# git config user.email \"dev.itredstone@gmail.com\"
+# git add .
+# git commit -m \"🌀 Auto-commit from Replit on $(date)\" || echo \"No changes to commit\"
+# git push origin main || echo \"❌ Push failed (auth or network issue)\"
+# """
+
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "npm run dev"
+
+
+
+#-------------
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
-run = "npm run dev"
+run = """
+echo "🚀 Starting PayrollPro with auto-commit..."
+
+# Start background file watcher
+(
+  echo "🔍 Starting file watcher..."
+  while true; do
+    # Wait for file changes (excluding git, node_modules, dist)
+    inotifywait -r -e modify,create,delete,move . \
+      --exclude='(\\.git|node_modules|dist|\\.replit)' 2>/dev/null || sleep 1
+
+    echo "📁 File change detected, waiting 3 seconds for more changes..."
+    sleep 3
+
+    # Configure git
+    git config user.name "dev-itredstone"
+    git config user.email "dev.itredstone@gmail.com"
+
+    # Check if there are actually changes to commit
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+      echo "💾 Committing changes..."
+      git add .
+      if git commit -m "🌀 Auto-commit from Replit on $(date '+%Y-%m-%d %H:%M:%S')"; then
+        echo "✅ Changes committed"
+        if git push origin main 2>/dev/null; then
+          echo "🚀 Changes pushed to remote"
+        else
+          echo "❌ Push failed (check auth/network)"
+        fi
+      fi
+    else
+      echo "ℹ️ No actual changes to commit"
+    fi
+  done
+) &
+
+# Start the main application
+npm run dev
+"""
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -49,13 +152,14 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = """
-git config user.name \"dev-itredstone\"
-git config user.email \"dev.itredstone@gmail.com\"
+git config user.name "dev-itredstone"
+git config user.email "dev.itredstone@gmail.com"
 git add .
-git commit -m \"🌀 Auto-commit from Replit on $(date)\" || echo \"No changes to commit\"
-git push origin main || echo \"❌ Push failed (auth or network issue)\"
+git commit -m "🌀 Manual commit from Replit on $(date)" || echo "No changes to commit"
+git push origin main || echo "❌ Push failed (auth or network issue)"
 """
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+waitForPort = 5000
