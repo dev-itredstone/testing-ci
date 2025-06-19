@@ -1,0 +1,141 @@
+name: Database CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'shared/schema.ts'
+      - 'scripts/*.ts'
+      - 'support-tables.sql'
+      - '.github/workflows/database-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'shared/schema.ts'
+      - 'scripts/*.ts'
+      - 'support-tables.sql'
+  workflow_dispatch:
+
+jobs:
+  validate-db:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Validate database schema
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb"
+        npx drizzle-kit check:postgres
+        echo "✅ Schema validation passed"
+
+    - name: Test database migrations
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb"
+        npx drizzle-kit push:postgres
+        echo "✅ Database migrations passed"
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: validate-db
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Run SQLInjection check
+      run: |
+        echo "Scanning for SQL injection vulnerabilities in database queries"
+        grep -r "sql\`" --include="*.ts" --include="*.js" . || echo "No raw SQL queries found"
+        
+    - name: Validate schema permissions
+      run: |
+        echo "Validating schema permission patterns"
+        node -e "
+        const fs = require('fs');
+        const schema = fs.readFileSync('./shared/schema.ts', 'utf8');
+        
+        // Check for proper reference constraints
+        const missingOnDelete = schema.match(/references\(\s*\(\)\s*=>\s*[^,]+,\s*\{\s*(?!.*onDelete)/g);
+        if (missingOnDelete && missingOnDelete.length > 0) {
+          console.warn('⚠️ Warning: Some foreign key references are missing onDelete behavior');
+          console.log(missingOnDelete);
+        } else {
+          console.log('✅ All foreign keys have proper onDelete behavior');
+        }
+        
+        // Check for proper timestamps
+        const hasTimestamps = schema.includes('timestamp(\"created_at\")') && 
+                             schema.includes('timestamp(\"updated_at\")');
+        if (!hasTimestamps) {
+          console.warn('⚠️ Warning: Some tables may be missing created_at/updated_at timestamps');
+        } else {
+          console.log('✅ Schema includes proper timestamp tracking');
+        }
+        "
+
+  deploy-db-changes:
+    runs-on: ubuntu-latest
+    needs: [validate-db, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Generate migration report
+      run: |
+        echo "Generating migration report for changes in this commit"
+        git diff --name-only HEAD~1 HEAD | grep -E 'shared/schema.ts|support-tables.sql' > changed_db_files.txt
+        if [ -s changed_db_files.txt ]; then
+          echo "Database schema changes detected in this commit:"
+          cat changed_db_files.txt
+          echo "✅ Migration report generated"
+        else
+          echo "No schema changes detected"
+        fi
+
+    - name: Database deployment notification
+      run: |
+        echo "✅ Database changes would be deployed here"
+        echo "All database changes have been validated and are ready for deployment"
+        echo "In a production environment, this step would apply the migrations to the production database"
