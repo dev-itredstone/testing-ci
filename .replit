@@ -1,6 +1,70 @@
+# modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
+# run = "npm run dev"
+# hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+# [nix]
+# channel = "stable-24_05"
+
+# [deployment]
+# deploymentTarget = "autoscale"
+# build = ["npm", "run", "build"]
+# run = ["sh", "-c", "npm run start"]
+
+# [[ports]]
+# localPort = 5000
+# externalPort = 80
+
+# [workflows]
+# runButton = "Run PayrollPro"
+
+# [[workflows.workflow]]
+# name = "Project"
+# mode = "parallel"
+# author = "agent"
+
+# [[workflows.workflow.tasks]]
+# task = "workflow.run"
+# args = "Start application"
+
+# [[workflows.workflow]]
+# name = "Start application"
+# author = "agent"
+
+# [workflows.workflow.metadata]
+# agentRequireRestartOnSave = false
+
+# [[workflows.workflow.tasks]]
+# task = "packager.installForAll"
+
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "npm run dev"
+# waitForPort = 5000
+
+# [[workflows.workflow]]
+# name = "Run PayrollPro"
+# author = 39972109
+# mode = "sequential"
+
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = """
+# git config user.name \"dev-itredstone\"
+# git config user.email \"dev.itredstone@gmail.com\"
+# git add .
+# git commit -m \"🌀 Auto-commit from Replit on $(date)\" || echo \"No changes to commit\"
+# git push origin main || echo \"❌ Push failed (auth or network issue)\"
+# """
+
+# [[workflows.workflow.tasks]]
+# task = "shell.exec"
+# args = "npm run dev"
+
+
+
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
-run = "npm run dev"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+run = "bash auto-sync.sh"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist", ".sync.log"]
 
 [nix]
 channel = "stable-24_05"
@@ -48,14 +112,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = """
-git config user.name \"dev-itredstone\"
-git config user.email \"dev.itredstone@gmail.com\"
-git add .
-git commit -m \"🌀 Auto-commit from Replit on $(date)\" || echo \"No changes to commit\"
-git push origin main || echo \"❌ Push failed (auth or network issue)\"
-"""
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
+args = "bash auto-sync.sh"
