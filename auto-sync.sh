@@ -8,7 +8,7 @@ git config user.email "dev.itredstone@gmail.com"
 
 # Set watch directory
 WATCH_DIR="./"
-INACTIVITY_SECONDS=30
+INACTIVITY_SECONDS=10
 
 # Get initial timestamp
 last_change=$(find "$WATCH_DIR" -type f -not -path './.git/*' -printf '%T@\n' | sort -nr | head -n 1)
